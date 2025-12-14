@@ -9,7 +9,7 @@ import { CreateUserDto } from 'src/dto/create-user.dto';
 import { User } from './user.schema';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(
     @InjectModel(User.name)
     private userModel: Model<User>,
@@ -28,5 +28,15 @@ export class UsersService {
     const user = await this.userModel.findById(id).select('-password');
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  async findFriends(id: string) {
+    const user = await this.userModel.findById(id).populate({
+      path: 'friends',
+      select: '-password',
+    });
+    if (!user) throw new NotFoundException('User not found');
+    // If no friends array is present, return empty list to match usual semantics
+    return user.friends || [];
   }
 }
