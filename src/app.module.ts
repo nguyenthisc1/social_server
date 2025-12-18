@@ -8,6 +8,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { FriendshipModule } from './modules/friendship/friendship.module';
 import { PostModule } from './modules/post/post.module';
 import { CommentModule } from './modules/comment/comment.module';
+import { ReactionModule } from './modules/reaction/reaction.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CommentModule } from './modules/comment/comment.module';
     FriendshipModule,
     PostModule,
     CommentModule,
+    ReactionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
