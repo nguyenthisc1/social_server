@@ -11,6 +11,8 @@ import { PostModule } from './modules/post/post.module';
 import { ReactionModule } from './modules/reaction/reaction.module';
 import { UserModule } from './modules/user/user.module';
 import { MediaService } from './nest/modules/media/media.service';
+import { NotificationService } from './nest/modules/notification/notification.service';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -23,8 +25,9 @@ import { MediaService } from './nest/modules/media/media.service';
     CommentModule,
     ReactionModule,
     MediaModule,
+    NotificationModule,
   ],
   controllers: [AppController],
-  providers: [AppService, MediaService],
+  providers: [AppService, MediaService, NotificationService],
 })
 export class AppModule {}
