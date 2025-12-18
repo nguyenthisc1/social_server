@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { User } from '../user/user.schema';
-import { FriendRequest } from './friend-request.schema';
+import { User } from '../user/schema/user.schema';
+import { FriendRequest } from './schema/friend-request.schema';
 
 @Injectable()
 export class FriendshipService {
@@ -16,48 +16,48 @@ export class FriendshipService {
     @InjectModel(FriendRequest.name) private requestModel: Model<FriendRequest>,
   ) {}
 
-  async sendRequest(fromId: string, toId: string) {
-    // Validate that fromId and toId are valid MongoDB ObjectIds
-    if (!Types.ObjectId.isValid(fromId)) {
+  async sendRequest(requesterId: string, receiverId: string) {
+    // Validate that requesterId and receiverId are valid MongoDB ObjectIds
+    if (!Types.ObjectId.isValid(requesterId)) {
       throw new BadRequestException('Invalid sender user ID');
     }
-    if (!Types.ObjectId.isValid(toId)) {
+    if (!Types.ObjectId.isValid(receiverId)) {
       throw new BadRequestException('Invalid receiver user ID');
     }
 
     // Can't send request to yourself
-    if (fromId === toId) {
+    if (requesterId === receiverId) {
       throw new BadRequestException('Cannot send friend request to yourself');
     }
 
     // Check if both users exist
-    const [fromUser, toUser] = await Promise.all([
-      this.userModel.findById(fromId),
-      this.userModel.findById(toId),
+    const [requesterUser, receiverUser] = await Promise.all([
+      this.userModel.findById(requesterId),
+      this.userModel.findById(receiverId),
     ]);
 
-    if (!fromUser) {
+    if (!requesterUser) {
       throw new NotFoundException('Sender user not found');
     }
-    if (!toUser) {
+    if (!receiverUser) {
       throw new NotFoundException('Receiver user not found');
     }
 
     // Check if already friends
-    const isFriend = fromUser.friends.some(
-      (friendId) => friendId.toString() === toId,
+    const isFriend = requesterUser.friends.some(
+      (friendId) => friendId.toString() === receiverId,
     );
     if (isFriend) {
       throw new ConflictException('Users are already friends');
     }
-    const userA = [fromId, toId].sort()[0];
-    const userB = [fromId, toId].sort()[1];
+    const userA = [requesterId, receiverId].sort()[0];
+    const userB = [requesterId, receiverId].sort()[1];
 
     // Check if there's already a pending request
     const existingRequest = await this.requestModel.findOne({
       $or: [
-        { from: userA, to: userB, status: 'pending' },
-        { from: userB, to: userA, status: 'pending' },
+        { requesterId: userA, receiverId: userB, status: 'pending' },
+        { requesterId: userB, receiverId: userA, status: 'pending' },
       ],
     });
 
@@ -66,8 +66,8 @@ export class FriendshipService {
     }
 
     return this.requestModel.create({
-      from: fromId,
-      to: toId,
+      requesterId: requesterId,
+      receiverId: receiverId,
     });
   }
 
@@ -84,7 +84,7 @@ export class FriendshipService {
     }
 
     // Verify that the current user is the receiver of the request
-    if (request.to.toString() !== userId) {
+    if (request.receiverId.toString() !== userId) {
       throw new BadRequestException('You can only accept requests sent to you');
     }
 
@@ -99,11 +99,11 @@ export class FriendshipService {
     }
 
     await Promise.all([
-      this.userModel.findByIdAndUpdate(request.from, {
-        $addToSet: { friends: request.to },
+      this.userModel.findByIdAndUpdate(request.requesterId, {
+        $addToSet: { friends: request.receiverId },
       }),
-      this.userModel.findByIdAndUpdate(request.to, {
-        $addToSet: { friends: request.from },
+      this.userModel.findByIdAndUpdate(request.receiverId, {
+        $addToSet: { friends: request.requesterId },
       }),
       this.requestModel.updateOne({ _id: requestId }, { status: 'accepted' }),
     ]);
@@ -123,7 +123,7 @@ export class FriendshipService {
     }
 
     // Verify that the current user is the receiver of the request
-    if (request.to.toString() !== userId) {
+    if (request.receiverId.toString() !== userId) {
       throw new BadRequestException('You can only reject requests sent to you');
     }
 
@@ -145,8 +145,8 @@ export class FriendshipService {
     }
 
     return this.requestModel
-      .find({ to: userId, status: 'pending' })
-      .populate('from', 'username email avatarUrl')
+      .find({ receiverId: userId, status: 'pending' })
+      .populate('requesterId', 'username email avatarUrl')
       .sort({ createdAt: -1 });
   }
 
@@ -156,8 +156,8 @@ export class FriendshipService {
     }
 
     return this.requestModel
-      .find({ from: userId, status: 'pending' })
-      .populate('to', 'username email avatarUrl')
+      .find({ requesterId: userId, status: 'pending' })
+      .populate('receiverId', 'username email avatarUrl')
       .sort({ createdAt: -1 });
   }
 

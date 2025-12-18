@@ -4,10 +4,10 @@ import { Types } from 'mongoose';
 @Schema({ timestamps: true })
 export class FriendRequest {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  from: Types.ObjectId;
+  receiverId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  to: Types.ObjectId;
+  requesterId: Types.ObjectId;
 
   @Prop({ enum: ['pending', 'accepted', 'rejected'], default: 'pending' })
   status: string;
