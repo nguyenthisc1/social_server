@@ -6,7 +6,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-export class CreatePostDto {
+export class UpdatePostDto {
   @IsOptional()
   @IsString()
   @MaxLength(2000)

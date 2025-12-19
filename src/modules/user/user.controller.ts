@@ -4,17 +4,17 @@ import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userervice: UserService) {}
+  constructor(private readonly userService: UserService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getProfile(@Param('id') id: string) {
-    return this.userervice.findById(id);
+    return this.userService.findById(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':id/friends')
   async getFriends(@Param('id') id: string) {
-    return this.userervice.findFriends(id);
+    return this.userService.findFriends(id);
   }
 }

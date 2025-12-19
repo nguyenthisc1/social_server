@@ -3,14 +3,23 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Post extends Document {
-  @Prop({ type: Types.ObjectId, ref: 'User', require: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   authorId: Types.ObjectId;
 
-  @Prop({ type: String, trim: true, maxLength: 2000 })
+  @Prop({ trim: true, maxLength: 2000 })
   content: string;
 
   @Prop({ type: [String], default: [] })
   images: string[];
+
+  @Prop({
+    enum: ['text', 'image', 'share'],
+    default: 'text',
+  })
+  type: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Post', default: null })
+  sharedPostId?: Types.ObjectId;
 
   @Prop({
     enum: ['public', 'friends', 'private'],
@@ -18,16 +27,29 @@ export class Post extends Document {
   })
   visibility: string;
 
-  @Prop({ type: Number, default: 0 })
+  @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
+  allowedUserIds: Types.ObjectId[];
+
+  @Prop({ default: 0 })
   likeCount: number;
 
-  @Prop({ type: Number, default: 0 })
+  @Prop({ default: 0 })
   commentCount: number;
 
-  @Prop({ type: Boolean, default: false })
+  @Prop({
+    enum: ['active', 'hidden', 'reported'],
+    default: 'active',
+  })
+  status: string;
+
+  @Prop({ default: false })
   isDeleted: boolean;
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
 
 PostSchema.index({ authorId: 1, createdAt: -1 });
+
+PostSchema.index({ visibility: 1, createdAt: -1 });
+
+PostSchema.index({ visibility: 1, createdAt: -1 });

@@ -7,12 +7,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CommentModule } from './modules/comment/comment.module';
 import { FriendshipModule } from './modules/friendship/friendship.module';
 import { MediaModule } from './modules/media/media.module';
-import { PostModule } from './modules/post/post.module';
 import { ReactionModule } from './modules/reaction/reaction.module';
 import { UserModule } from './modules/user/user.module';
-import { MediaService } from './nest/modules/media/media.service';
-import { NotificationService } from './nest/modules/notification/notification.service';
 import { NotificationModule } from './modules/notification/notification.module';
+import { PostModule } from './modules/post/post.module';
 
 @Module({
   imports: [
@@ -28,6 +26,6 @@ import { NotificationModule } from './modules/notification/notification.module';
     NotificationModule,
   ],
   controllers: [AppController],
-  providers: [AppService, MediaService, NotificationService],
+  providers: [AppService],
 })
 export class AppModule {}
