@@ -52,7 +52,7 @@ export class PostService {
     }
 
     const post = await this.postModel.create({
-      authorId: authorId,
+      authorId: Types.ObjectId.createFromHexString(authorId),
       content: dto.content || '',
       images: dto.images || [],
       visibility: dto.visibility || 'friends',
@@ -247,10 +247,7 @@ export class PostService {
     const postQuery = {
       isDeleted: false,
       authorId: { $in: authorIds },
-      $or: [
-        { authorId: viewerObjectId },
-        { visibility: { $in: ['public', 'friends'] } },
-      ],
+      $or: [{ visibility: { $in: ['public', 'friends'] } }],
     };
 
     const posts = await this.postModel
