@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostService } from './post.service';
-import { FeedQueryDto } from './dto/feed-query.dto';
+import { FeedQueryDto } from '../../common/dto/feed-query.dto';
 
 @Controller('post')
 export class PostController {
@@ -58,5 +58,12 @@ export class PostController {
     @Req() req,
   ) {
     return this.postService.getByUser(userId, req.user.userId as string, query);
+  }
+
+  @Get('feed/home')
+  @UseGuards(JwtAuthGuard)
+  getHomeFeed(@Req() req, @Query() query: FeedQueryDto) {
+    const userId: string = (req.user as { userId: string }).userId;
+    return this.postService.getHomeFeed(userId, query);
   }
 }

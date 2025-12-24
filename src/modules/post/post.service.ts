@@ -6,14 +6,18 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { FeedQueryDto } from '../../common/dto/feed-query.dto';
+import { FriendshipService } from '../friendship/friendship.service';
 import { CreatePostDto } from './dto/create-post.dto';
-import { FeedQueryDto } from './dto/feed-query.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post } from './schema/post.schema';
 
 @Injectable()
 export class PostService {
-  constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
+  constructor(
+    @InjectModel(Post.name) private postModel: Model<Post>,
+    private friendshipService: FriendshipService,
+  ) {}
 
   // Core
   async create(dto: CreatePostDto, authorId: string) {
@@ -176,6 +180,7 @@ export class PostService {
 
     return post;
   }
+
   async getByUser(userId: string, viewerId: string, query: FeedQueryDto) {
     if (!Types.ObjectId.isValid(userId)) {
       throw new BadRequestException('Invalid user id');
@@ -196,10 +201,10 @@ export class PostService {
         { visibility: 'private' },
       ];
     } else {
-      //   const isFriend = await this.friendshipService.isFriend(userId, viewerId);
-      //   if (isFriend) {
-      //     visibilityFilter.push({ visibility: 'friends' });
-      //   }
+      const isFriend = await this.friendshipService.isFriend(userId, viewerId);
+      if (isFriend) {
+        visibilityFilter.push({ visibility: 'friends' });
+      }
     }
 
     const posts = await this.postModel
@@ -218,7 +223,46 @@ export class PostService {
   }
 
   // Feed
-  //   getHomeFeed(userId: string, query: FeedQueryDto);
+  async getHomeFeed(viewerId: string, query: FeedQueryDto) {
+    if (!Types.ObjectId.isValid(viewerId)) {
+      throw new BadRequestException('Invalid user id');
+    }
+
+    const page = Number(query.page) > 0 ? Number(query.page) : 1;
+    const limit = Number(query.limit) > 0 ? Number(query.limit) : 10;
+    const skip = (page - 1) * limit;
+
+    const friendIds = await this.friendshipService.getFriendIds(viewerId);
+
+    const viewerObjectId = Types.ObjectId.createFromHexString(viewerId);
+
+    // Prepare authorIds as ObjectIds, filter out invalid ids
+    const authorIds = [
+      viewerObjectId,
+      ...friendIds
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => Types.ObjectId.createFromHexString(id)),
+    ];
+
+    const postQuery = {
+      isDeleted: false,
+      authorId: { $in: authorIds },
+      $or: [
+        { authorId: viewerObjectId },
+        { visibility: { $in: ['public', 'friends'] } },
+      ],
+    };
+
+    const posts = await this.postModel
+      .find(postQuery)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('authorId', 'username avatar')
+      .lean();
+
+    return posts;
+  }
 
   // Interaction
   //   like(postId: string, userId: string);

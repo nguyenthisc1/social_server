@@ -6,7 +6,7 @@ export class Post extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   authorId: Types.ObjectId;
 
-  @Prop({ trim: true, maxLength: 2000 })
+  @Prop({ trim: true, maxlength: 2000 })
   content: string;
 
   @Prop({ type: [String], default: [] })
@@ -15,6 +15,7 @@ export class Post extends Document {
   @Prop({
     enum: ['text', 'image', 'share'],
     default: 'text',
+    type: String,
   })
   type: string;
 
@@ -24,6 +25,7 @@ export class Post extends Document {
   @Prop({
     enum: ['public', 'friends', 'private'],
     default: 'friends',
+    type: String,
   })
   visibility: string;
 
@@ -39,6 +41,7 @@ export class Post extends Document {
   @Prop({
     enum: ['active', 'hidden', 'reported'],
     default: 'active',
+    type: String,
   })
   status: string;
 
@@ -49,7 +52,6 @@ export class Post extends Document {
 export const PostSchema = SchemaFactory.createForClass(Post);
 
 PostSchema.index({ authorId: 1, createdAt: -1 });
-
 PostSchema.index({ visibility: 1, createdAt: -1 });
-
-PostSchema.index({ visibility: 1, createdAt: -1 });
+// Removed duplicate index
+PostSchema.index({ authorId: 1, visibility: 1, createdAt: -1 });
