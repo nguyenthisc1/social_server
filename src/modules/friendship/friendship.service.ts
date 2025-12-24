@@ -7,13 +7,13 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User } from '../user/schema/user.schema';
-import { FriendRequest } from './schema/friend-request.schema';
+import { Friendship } from './schema/friend-request.schema';
 
 @Injectable()
 export class FriendshipService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    @InjectModel(FriendRequest.name) private requestModel: Model<FriendRequest>,
+    @InjectModel(Friendship.name) private friendshipModel: Model<Friendship>,
   ) {}
 
   async sendRequest(requesterId: string, receiverId: string) {
@@ -54,7 +54,7 @@ export class FriendshipService {
     const userB = [requesterId, receiverId].sort()[1];
 
     // Check if there's already a pending request
-    const existingRequest = await this.requestModel.findOne({
+    const existingRequest = await this.friendshipModel.findOne({
       $or: [
         { requesterId: userA, receiverId: userB, status: 'pending' },
         { requesterId: userB, receiverId: userA, status: 'pending' },
@@ -65,7 +65,7 @@ export class FriendshipService {
       throw new ConflictException('Friend request already exists');
     }
 
-    return this.requestModel.create({
+    return this.friendshipModel.create({
       requesterId: requesterId,
       receiverId: receiverId,
     });
@@ -77,7 +77,7 @@ export class FriendshipService {
       throw new BadRequestException('Invalid request ID');
     }
 
-    const request = await this.requestModel.findById(requestId);
+    const request = await this.friendshipModel.findById(requestId);
 
     if (!request) {
       throw new NotFoundException('Friend request not found');
@@ -105,7 +105,10 @@ export class FriendshipService {
       this.userModel.findByIdAndUpdate(request.receiverId, {
         $addToSet: { friends: request.requesterId },
       }),
-      this.requestModel.updateOne({ _id: requestId }, { status: 'accepted' }),
+      this.friendshipModel.updateOne(
+        { _id: requestId },
+        { status: 'accepted' },
+      ),
     ]);
 
     return { message: 'Friend request accepted successfully' };
@@ -116,7 +119,7 @@ export class FriendshipService {
       throw new BadRequestException('Invalid request ID');
     }
 
-    const request = await this.requestModel.findById(requestId);
+    const request = await this.friendshipModel.findById(requestId);
 
     if (!request) {
       throw new NotFoundException('Friend request not found');
@@ -131,7 +134,7 @@ export class FriendshipService {
       throw new BadRequestException('Can only reject pending requests');
     }
 
-    await this.requestModel.updateOne(
+    await this.friendshipModel.updateOne(
       { _id: requestId },
       { status: 'rejected' },
     );
@@ -144,7 +147,7 @@ export class FriendshipService {
       throw new BadRequestException('Invalid user ID');
     }
 
-    return this.requestModel
+    return this.friendshipModel
       .find({ receiverId: userId, status: 'pending' })
       .populate('requesterId', 'username email avatarUrl')
       .sort({ createdAt: -1 });
@@ -155,7 +158,7 @@ export class FriendshipService {
       throw new BadRequestException('Invalid user ID');
     }
 
-    return this.requestModel
+    return this.friendshipModel
       .find({ requesterId: userId, status: 'pending' })
       .populate('receiverId', 'username email avatarUrl')
       .sort({ createdAt: -1 });
@@ -176,5 +179,28 @@ export class FriendshipService {
     }
 
     return user.friends;
+  }
+
+  async isFriend(userAId: string, userBId: string) {
+    if (!Types.ObjectId.isValid(userAId) || !Types.ObjectId.isValid(userBId)) {
+      return false;
+    }
+    if (userAId === userBId) return false;
+    const userA = await this.userModel.findById(userAId).select('friends');
+    if (!userA) return false;
+    return userA.friends.some((friendId) => friendId.toString() === userBId);
+  }
+
+  async getFriendIds(userId: string) {
+    const friendships = await this.friendshipModel.find({
+      status: 'accepted',
+      $or: [{ requesterId: userId }, { receiverId: userId }],
+    });
+
+    return friendships.map((f) =>
+      f.requesterId.toString() === userId
+        ? f.receiverId.toString()
+        : f.requesterId.toString(),
+    );
   }
 }

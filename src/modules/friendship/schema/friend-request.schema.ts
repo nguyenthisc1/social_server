@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class FriendRequest {
+export class Friendship {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   receiverId: Types.ObjectId;
 
@@ -13,8 +13,8 @@ export class FriendRequest {
   status: string;
 }
 
-export const FriendRequestSchema = SchemaFactory.createForClass(FriendRequest);
+export const FriendshipSchema = SchemaFactory.createForClass(Friendship);
 
-FriendRequestSchema.index({ from: 1, to: 1 }, { unique: true });
-
-FriendRequestSchema.index({ to: 1, status: 1 });
+FriendshipSchema.index({ status: 1 });
+FriendshipSchema.index({ requesterId: 1 });
+FriendshipSchema.index({ receiverId: 1 });

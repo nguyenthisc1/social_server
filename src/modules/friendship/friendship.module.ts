@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../user/schema/user.schema';
-import { FriendRequest, FriendRequestSchema } from './schema/friend-request.schema';
+import { Friendship, FriendshipSchema } from './schema/friend-request.schema';
 import { FriendshipController } from './friendship.controller';
 import { FriendshipService } from './friendship.service';
 
@@ -9,7 +9,7 @@ import { FriendshipService } from './friendship.service';
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
-      { name: FriendRequest.name, schema: FriendRequestSchema },
+      { name: Friendship.name, schema: FriendshipSchema },
     ]),
   ],
   providers: [FriendshipService],
