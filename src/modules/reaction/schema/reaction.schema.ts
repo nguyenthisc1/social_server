@@ -9,9 +9,12 @@ export class Reaction extends Document {
   @Prop({
     type: {
       type: String,
-      id: { type: Types.ObjectId },
+      required: true,
     },
-    required: true,
+    id: {
+      type: Types.ObjectId,
+      required: true,
+    },
   })
   target: {
     type: string;

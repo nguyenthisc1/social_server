@@ -73,7 +73,8 @@ export class FriendshipController {
 
   @Get('friends')
   getFriends(@Req() req: { user?: { userId?: string } }) {
-    const userId = req?.user?.userId;
+    const userId: string = (req.user as { userId: string }).userId;
+
     if (!userId) {
       throw new UnauthorizedException('User not authenticated');
     }
