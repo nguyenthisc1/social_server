@@ -186,8 +186,9 @@ export class PostService {
       throw new BadRequestException('Invalid user id');
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || 10;
+    // Ensure page/limit are positive integers, default to 1 and 10
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.max(Number(query.limit) || 10, 1);
     const skip = (page - 1) * limit;
 
     const isOwner = userId === viewerId;
@@ -207,19 +208,36 @@ export class PostService {
       }
     }
 
-    const posts = await this.postModel
-      .find({
+    const [posts, total] = await Promise.all([
+      this.postModel
+        .find({
+          authorId: userId,
+          isDeleted: false,
+          $or: visibilityFilter,
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('authorId', 'username avatar')
+        .lean(),
+      this.postModel.countDocuments({
         authorId: userId,
         isDeleted: false,
         $or: visibilityFilter,
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('authorId', 'username avatar')
-      .lean();
+      }),
+    ]);
 
-    return posts;
+    return {
+      data: posts,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: skip + posts.length < total,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 
   // Feed
@@ -228,8 +246,8 @@ export class PostService {
       throw new BadRequestException('Invalid user id');
     }
 
-    const page = Number(query.page) > 0 ? Number(query.page) : 1;
-    const limit = Number(query.limit) > 0 ? Number(query.limit) : 10;
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.max(Number(query.limit) || 10, 1);
     const skip = (page - 1) * limit;
 
     const friendIds = await this.friendshipService.getFriendIds(viewerId);
@@ -250,15 +268,28 @@ export class PostService {
       $or: [{ visibility: { $in: ['public', 'friends'] } }],
     };
 
-    const posts = await this.postModel
-      .find(postQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('authorId', 'username avatar')
-      .lean();
+    const [posts, total] = await Promise.all([
+      this.postModel
+        .find(postQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('authorId', 'username avatar')
+        .lean(),
+      this.postModel.countDocuments(postQuery),
+    ]);
 
-    return posts;
+    return {
+      data: posts,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: skip + posts.length < total,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 
   // Interaction
