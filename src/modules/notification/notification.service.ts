@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { notification } from './schema/notification.schema';
+import { Notification } from './schema/notification.schema';
 
 @Injectable()
 export class NotificationService {
   constructor(
-    @InjectModel(notification.name)
-    private notificationModel: Model<notification>,
+    @InjectModel(Notification.name)
+    private notificationModel: Model<Notification>,
   ) {}
 
   async create(data: {

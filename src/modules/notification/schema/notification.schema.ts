@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class notification {
+export class Notification {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   recipientId: Types.ObjectId;
 
