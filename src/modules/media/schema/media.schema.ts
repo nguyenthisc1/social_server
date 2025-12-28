@@ -1,6 +1,22 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
+export class MediaMetadata {
+  @Prop({ type: Number })
+  width?: number;
+
+  @Prop({ type: Number })
+  height?: number;
+
+  @Prop({ type: Number })
+  duration?: number;
+
+  @Prop({ type: Number })
+  size?: number;
+}
+
+export const MediaMetadataSchema = SchemaFactory.createForClass(MediaMetadata);
+
 @Schema({ timestamps: true })
 export class Media {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
@@ -36,18 +52,11 @@ export class Media {
   })
   status: string;
 
-  @Prop({
-    width: Number,
-    height: Number,
-    duration: Number,
-    size: Number,
-  })
-  metadata: {
-    width?: number;
-    height?: number;
-    duration?: number;
-    size?: number;
-  };
+  @Prop()
+  publicId?: string;
+
+  @Prop({ type: MediaMetadataSchema })
+  metadata: MediaMetadata;
 }
 
 export const MediaSchema = SchemaFactory.createForClass(Media);
