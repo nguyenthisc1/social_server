@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Post } from '../post/schema/post.schema';
 import { Reaction } from '../reaction/schema/reaction.schema';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { Comment } from './schema/comment.schema';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class CommentService {
@@ -47,7 +47,11 @@ export class CommentService {
       $inc: { commentCount: 1 },
     });
 
-    return comment;
+    return {
+      success: true,
+      message: 'Comment created successfully.',
+      data: comment,
+    };
   }
 
   async update(userId: string, commentId: string, content: string) {
@@ -85,7 +89,13 @@ export class CommentService {
     comment.content = trimmedContent;
     comment.isEdited = true;
 
-    return comment.save();
+    const savedComment = await comment.save();
+
+    return {
+      success: true,
+      message: 'Comment updated successfully.',
+      data: savedComment,
+    };
   }
 
   async delete(commentId: string, userId: string) {
@@ -109,6 +119,11 @@ export class CommentService {
     await this.postModel.findByIdAndUpdate(comment.postId, {
       $inc: { commentCount: -1 },
     });
+
+    return {
+      success: true,
+      message: 'Comment deleted successfully.',
+    };
   }
 
   async getByPost(postId: string, query: PaginationDto) {
@@ -140,6 +155,8 @@ export class CommentService {
     if (hasMore) comments.pop();
 
     return {
+      success: true,
+      message: 'Comments fetched successfully.',
       data: comments,
       nextCursor:
         hasMore && comments.length
@@ -176,6 +193,8 @@ export class CommentService {
     if (hasMore) replies.pop();
 
     return {
+      success: true,
+      message: 'Replies fetched successfully.',
       data: replies,
       nextCursor:
         hasMore && replies.length

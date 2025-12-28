@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { FriendshipService } from './friendship.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { SendFriendRequestDto } from 'src/modules/friendship/send-friend-request.dto';
+import { SendFriendRequestDto } from './dto/send-friend-request.dto';
 
 @Controller('friendship')
 @UseGuards(JwtAuthGuard)

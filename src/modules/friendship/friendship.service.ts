@@ -17,7 +17,6 @@ export class FriendshipService {
   ) {}
 
   async sendRequest(requesterId: string, receiverId: string) {
-    // Validate that requesterId and receiverId are valid MongoDB ObjectIds
     if (!Types.ObjectId.isValid(requesterId)) {
       throw new BadRequestException('Invalid sender user ID');
     }
@@ -25,12 +24,10 @@ export class FriendshipService {
       throw new BadRequestException('Invalid receiver user ID');
     }
 
-    // Can't send request to yourself
     if (requesterId === receiverId) {
       throw new BadRequestException('Cannot send friend request to yourself');
     }
 
-    // Check if both users exist
     const [requesterUser, receiverUser] = await Promise.all([
       this.userModel.findById(requesterId),
       this.userModel.findById(receiverId),
@@ -43,7 +40,6 @@ export class FriendshipService {
       throw new NotFoundException('Receiver user not found');
     }
 
-    // Check if already friends
     const isFriend = requesterUser.friends.some(
       (friendId) => friendId.toString() === receiverId,
     );
@@ -53,7 +49,6 @@ export class FriendshipService {
     const userA = [requesterId, receiverId].sort()[0];
     const userB = [requesterId, receiverId].sort()[1];
 
-    // Check if there's already a pending request
     const existingRequest = await this.friendshipModel.findOne({
       $or: [
         { requesterId: userA, receiverId: userB, status: 'pending' },
@@ -65,14 +60,19 @@ export class FriendshipService {
       throw new ConflictException('Friend request already exists');
     }
 
-    return this.friendshipModel.create({
+    const newRequest = await this.friendshipModel.create({
       requesterId: requesterId,
       receiverId: receiverId,
     });
+
+    return {
+      success: true,
+      message: 'Friend request sent successfully',
+      data: newRequest,
+    };
   }
 
   async acceptRequest(requestId: string, userId: string) {
-    // Validate requestId
     if (!Types.ObjectId.isValid(requestId)) {
       throw new BadRequestException('Invalid request ID');
     }
@@ -83,17 +83,14 @@ export class FriendshipService {
       throw new NotFoundException('Friend request not found');
     }
 
-    // Verify that the current user is the receiver of the request
     if (request.receiverId.toString() !== userId) {
       throw new BadRequestException('You can only accept requests sent to you');
     }
 
-    // Check if already accepted
     if (request.status === 'accepted') {
       throw new ConflictException('Friend request already accepted');
     }
 
-    // Check if rejected
     if (request.status === 'rejected') {
       throw new BadRequestException('Friend request was rejected');
     }
@@ -111,7 +108,11 @@ export class FriendshipService {
       ),
     ]);
 
-    return { message: 'Friend request accepted successfully' };
+    return {
+      success: true,
+      message: 'Friend request accepted successfully',
+      status: true,
+    };
   }
 
   async rejectRequest(requestId: string, userId: string) {
@@ -125,7 +126,6 @@ export class FriendshipService {
       throw new NotFoundException('Friend request not found');
     }
 
-    // Verify that the current user is the receiver of the request
     if (request.receiverId.toString() !== userId) {
       throw new BadRequestException('You can only reject requests sent to you');
     }
@@ -139,7 +139,11 @@ export class FriendshipService {
       { status: 'rejected' },
     );
 
-    return { message: 'Friend request rejected successfully' };
+    return {
+      success: true,
+      message: 'Friend request rejected successfully',
+      status: true,
+    };
   }
 
   async getPendingRequests(userId: string) {
@@ -147,10 +151,17 @@ export class FriendshipService {
       throw new BadRequestException('Invalid user ID');
     }
 
-    return this.friendshipModel
+    const requests = await this.friendshipModel
       .find({ receiverId: userId, status: 'pending' })
       .populate('requesterId', 'username email avatarUrl')
       .sort({ createdAt: -1 });
+
+    return {
+      success: true,
+      message: 'Pending friend requests fetched successfully',
+      data: requests,
+      status: true,
+    };
   }
 
   async getSentRequests(userId: string) {
@@ -158,10 +169,17 @@ export class FriendshipService {
       throw new BadRequestException('Invalid user ID');
     }
 
-    return this.friendshipModel
+    const requests = await this.friendshipModel
       .find({ requesterId: userId, status: 'pending' })
       .populate('receiverId', 'username email avatarUrl')
       .sort({ createdAt: -1 });
+
+    return {
+      success: true,
+      message: 'Sent friend requests fetched successfully',
+      data: requests,
+      status: true,
+    };
   }
 
   async getFriends(userId: string) {
@@ -178,17 +196,47 @@ export class FriendshipService {
       throw new NotFoundException('User not found');
     }
 
-    return user.friends;
+    return {
+      success: true,
+      message: 'Friends list fetched successfully',
+      data: user.friends,
+      status: true,
+    };
   }
 
   async isFriend(userAId: string, userBId: string) {
     if (!Types.ObjectId.isValid(userAId) || !Types.ObjectId.isValid(userBId)) {
-      return false;
+      return {
+        success: false,
+        message: 'Invalid user ID(s)',
+        status: false,
+        isFriend: false,
+      };
     }
-    if (userAId === userBId) return false;
+    if (userAId === userBId)
+      return {
+        success: false,
+        message: 'Cannot be friends with yourself',
+        status: false,
+        isFriend: false,
+      };
     const userA = await this.userModel.findById(userAId).select('friends');
-    if (!userA) return false;
-    return userA.friends.some((friendId) => friendId.toString() === userBId);
+    if (!userA)
+      return {
+        success: false,
+        message: 'User not found',
+        status: false,
+        isFriend: false,
+      };
+    const isFriend = userA.friends.some(
+      (friendId) => friendId.toString() === userBId,
+    );
+    return {
+      success: true,
+      message: 'Friendship status fetched',
+      isFriend,
+      status: true,
+    };
   }
 
   async getFriendIds(userId: string) {
@@ -197,10 +245,17 @@ export class FriendshipService {
       $or: [{ requesterId: userId }, { receiverId: userId }],
     });
 
-    return friendships.map((f) =>
+    const friends = friendships.map((f) =>
       f.requesterId.toString() === userId
         ? f.receiverId.toString()
         : f.requesterId.toString(),
     );
+
+    return {
+      success: true,
+      message: 'Friend IDs fetched successfully',
+      data: friends,
+      status: true,
+    };
   }
 }

@@ -60,7 +60,12 @@ export class PostService {
       sharedPostId: dto.sharedPostId || undefined,
     });
 
-    return post;
+    return {
+      success: true,
+      status: true,
+      message: 'Post created successfully.',
+      data: post,
+    };
   }
 
   async update(postId: string, dto: UpdatePostDto, authorId: string) {
@@ -117,7 +122,12 @@ export class PostService {
 
     await post.save();
 
-    return post;
+    return {
+      success: true,
+      status: true,
+      message: 'Post updated successfully.',
+      data: post,
+    };
   }
 
   async delete(postId: string, userId: string) {
@@ -143,7 +153,11 @@ export class PostService {
     post.isDeleted = true;
     await post.save();
 
-    return { success: true };
+    return {
+      success: true,
+      status: true,
+      message: 'Post deleted successfully.',
+    };
   }
 
   // Query
@@ -178,7 +192,12 @@ export class PostService {
     //   }
     // }
 
-    return post;
+    return {
+      success: true,
+      status: true,
+      message: 'Post fetched successfully.',
+      data: post,
+    };
   }
 
   async getByUser(userId: string, viewerId: string, query: FeedQueryDto) {
@@ -228,6 +247,9 @@ export class PostService {
     ]);
 
     return {
+      success: true,
+      status: true,
+      message: 'Posts fetched successfully.',
       data: posts,
       pagination: {
         total,
@@ -255,12 +277,16 @@ export class PostService {
     const viewerObjectId = Types.ObjectId.createFromHexString(viewerId);
 
     // Prepare authorIds as ObjectIds, filter out invalid ids
-    const authorIds = [
-      viewerObjectId,
-      ...friendIds
-        .filter((id) => Types.ObjectId.isValid(id))
-        .map((id) => Types.ObjectId.createFromHexString(id)),
-    ];
+    // Defensive: ensure friendIds is array of strings, avoid accessing methods if it's not
+    const validFriendObjectIds: Types.ObjectId[] = Array.isArray(friendIds)
+      ? friendIds
+          .filter(
+            (id: any) => typeof id === 'string' && Types.ObjectId.isValid(id),
+          )
+          .map((id: string) => Types.ObjectId.createFromHexString(id))
+      : [];
+
+    const authorIds = [viewerObjectId, ...validFriendObjectIds];
 
     const postQuery = {
       isDeleted: false,
@@ -280,6 +306,9 @@ export class PostService {
     ]);
 
     return {
+      success: true,
+      status: true,
+      message: 'Feed fetched successfully.',
       data: posts,
       pagination: {
         total,

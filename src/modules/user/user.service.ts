@@ -26,8 +26,19 @@ export class UserService {
 
   async findById(id: string) {
     const user = await this.userModel.findById(id).select('-password');
-    if (!user) throw new NotFoundException('User not found');
-    return user;
+    if (!user) {
+      return {
+        status: false,
+        message: 'User not found',
+        data: null,
+      };
+    }
+
+    return {
+      status: true,
+      message: 'User fetched successfully',
+      data: user,
+    };
   }
 
   async findFriends(id: string) {
@@ -37,6 +48,13 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
     // If no friends array is present, return empty list to match usual semantics
-    return user.friends || [];
+
+    // Adding status for compatibility with @friendship.service.ts (160-162)
+    // Follows structure: { status: true, message: '...', data: ... }
+    return {
+      status: true,
+      message: 'Friends fetched successfully',
+      data: user.friends || [],
+    };
   }
 }

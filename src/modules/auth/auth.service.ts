@@ -13,7 +13,15 @@ export class AuthService {
 
   async register(dto: CreateUserDto) {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-    return this.userService.create({ ...dto, password: hashedPassword });
+    const user = await this.userService.create({
+      ...dto,
+      password: hashedPassword,
+    });
+    return {
+      success: true,
+      message: 'User registered successfully.',
+      user,
+    };
   }
 
   async login(email: string, password: string) {
@@ -26,6 +34,8 @@ export class AuthService {
     const payload = { sub: user._id, email: user.email };
 
     return {
+      success: true,
+      message: 'Login successful.',
       accessToken: this.jwtService.sign(payload, { expiresIn: '30d' }),
       user: {
         id: user._id,
