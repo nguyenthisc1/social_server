@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateUserDto } from 'src/modules/user/dto/create-user.dto';
 import { UserService } from '../user/user.service';
 import { RefreshTokenDto } from './dto/login.dto';
 import { RefreshToken } from './schema/refresh-token.schema';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -192,15 +196,24 @@ export class AuthService {
     }
 
     try {
-      // Verify the refresh token with secret from env
+      // Verify the refresh token
       const decoded = this.jwtService.verify<{
         sub: string;
         email: string;
       }>(dto.refreshToken, { secret: this.jwtRefreshSecret });
 
+      // Validate decoded.sub is a proper ObjectId, or throw
+      let userObjectId: Types.ObjectId;
+      try {
+        userObjectId = new Types.ObjectId(decoded.sub);
+      } catch (e) {
+        // If not a valid ObjectId, reject for security
+        throw new UnauthorizedException('Invalid refresh token', e);
+      }
+
       // Find refresh token for the correct user + deviceId pair
       const refreshTokenDoc = await this.refreshTokenModel.findOne({
-        userId: decoded.sub,
+        userId: userObjectId,
         deviceId,
       });
 
@@ -219,8 +232,7 @@ export class AuthService {
       }
 
       // Retrieve user details
-      const user = await this.userService['userModel'].findById(decoded.sub);
-
+      const user = await this.userService['userModel'].findById(userObjectId);
       if (!user) {
         throw new UnauthorizedException('User not found.');
       }
@@ -276,7 +288,18 @@ export class AuthService {
           },
         },
       };
-    } catch {
+    } catch (err) {
+      // If the error is a CastError or BSONError, treat as Unauthorized
+      if (
+        err?.name === 'CastError' ||
+        err?.name === 'BSONError' ||
+        err?.message?.toString().includes('ObjectId') ||
+        err?.message
+          ?.toString()
+          .includes('input must be a 24 character hex string')
+      ) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
